@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Catalog</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            min-height: 100vh;
+            padding: 20px 16px;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: var(--tg-theme-hint-color, #999999);
+            font-size: 14px;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .menu-item {
+            background: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 12px;
+            padding: 20px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .menu-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .menu-item:active {
+            transform: translateY(0);
+        }
+
+        .menu-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .menu-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--tg-theme-bg-color, #ffffff);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--tg-theme-hint-color, #eeeeee);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--tg-theme-hint-color, #999999);
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .product-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .product-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border: 1px solid var(--tg-theme-hint-color, #eeeeee);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .product-item:hover {
+            background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+            border-color: var(--tg-theme-button-color, #3390ec);
+        }
+
+        .product-emoji {
+            font-size: 24px;
+            margin-right: 16px;
+            min-width: 30px;
+        }
+
+        .product-info {
+            flex: 1;
+        }
+
+        .product-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .product-price {
+            color: var(--tg-theme-button-color, #3390ec);
+            font-weight: bold;
+        }
+
+        .product-description {
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #999999);
+            margin-top: 4px;
+        }
+
+        .buy-btn {
+            background: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .buy-btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎰 Casino Hub</h1>
+            <p>Choose a category to explore offers</p>
+        </div>
+
+        <div class="menu-grid">
+            <button class="menu-item" onclick="openModal('casinos')">
+                <span class="menu-icon">🎰</span>
+                <span class="menu-title">Best Casinos</span>
+            </button>
+            <button class="menu-item" onclick="openModal('bonus')">
+                <span class="menu-icon">💰</span>
+                <span class="menu-title">Best Bonus</span>
+            </button>
+            <button class="menu-item" onclick="openModal('freespins')">
+                <span class="menu-icon">🎯</span>
+                <span class="menu-title">Free Spins</span>
+            </button>
+            <button class="menu-item" onclick="openModal('slots')">
+                <span class="menu-icon">🎲</span>
+                <span class="menu-title">Top Slots</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Best Casinos Modal -->
+    <div id="casinos-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🎰 Best Casinos</h2>
+                <button class="close-btn" onclick="closeModal('casinos')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="product-list">
+                    <div class="product-item" onclick="selectProduct('Royal Casino', '98% RTP', 'casinos')">
+                        <span class="product-emoji">👑</span>
+                        <div class="product-info">
+                            <div class="product-name">Royal Casino</div>
+                            <div class="product-price">98% RTP</div>
+                            <div class="product-description">Premium casino with high return rates</div>
+                        </div>
+                        <button class="buy-btn">Play</button>
+                    </div>
+                    <div class="product-item" onclick="selectProduct('Diamond Palace', '97% RTP', 'casinos')">
+                        <span class="product-emoji">💎</span>
+                        <div class="product-info">
+                            <div class="product-name">Diamond Palace</div>
+                            <div class="product-price">97% RTP</div>
+                            <div class="product-description">Luxury casino with exclusive games</div>
+                        </div>
+                        <button class="buy-btn">Play</button>
+                    </div>
+                    <div class="product-item" onclick="selectProduct('Lucky Ace', '96% RTP', 'casinos')">
+                        <span class="product-emoji">🍀</span>
+                        <div class="product-info">
+                            <div class="product-name">Lucky Ace</div>
+                            <div class="product-price">96% RTP</div>
+                            <div class="product-description">Popular casino with daily tournaments</div>
+                        </div>
+                        <button class="buy-btn">Play</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Best Bonus Modal -->
+    <div id="bonus-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">💰 Best Bonus</h2>
+                <button class="close-btn" onclick="closeModal('bonus')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="product-list">
+                    <div class="product-item" onclick="selectProduct('Welcome Bonus', '200% + 100 FS', 'bonus')">
+                        <span class="product-emoji">🎁</span>
+                        <div class="product-info">
+                            <div class="product-name">Welcome Bonus</div>
+                            <div class="product-price">200% + 100 FS</div>
+                            <div class="product-description">Mega welcome package for new players</div>
+                        </div>
+                        <button class="buy-btn">Claim</button>
+                    </div>
+                    <div class="product-item" onclick="selectProduct('No Deposit Bonus', '$50 Free', 'bonus')">
+                        <span class="product-emoji">🆓</span>
+                        <div class="product-info">
+                            <div class="product-name">No Deposit Bonus</div>
+                            <div class="product-price">$50 Free</div>
+                            <div class="product-description">Play without any deposit required</div>
+                        </div>
+                        <button class="buy-btn">Claim</button>
+                    </div>
+                    <div class="product-item" onclick="selectProduct('Reload Bonus', '150% Match', 'bonus')">
+                        <span class="product-emoji">🔄</span>
+                        <div class="product-info">
+                            <div class="product-name">Reload Bonus</div>
+                            <div class="product-price">150% Match</div>
+                            <div class="product-description">Weekly reload bonus for existing players</div>
+                        </div>
+                        <button class="buy-btn">Claim</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Free Spins Modal -->
+    <div id="freespins-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🎯 Free Spins</h2>
+                <button class="close-btn" onclick="closeModal('freespins')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="product-list">
+                    <div class="product-item" onclick="selectProduct('Daily Free Spins', '50 Spins', 'freespins')">
+                        <span class="product-emoji">🌟</span>
+                        <div class="product-info">
+                            <div class="product-name">Daily Free Spins</div>
+                            <div class="product-price">50 Spins</div>
+                            <div class="product-description">Get 50 free spins every day</div>
+                        </div>
+                        <button class="buy-btn">Claim</button>
+                    </div>
+                    <div class="product-item" onclick="selectProduct('Weekend Special', '100 Spins', 'freespins')">
+                        <span class="product-emoji">🎊</span>
+                        <div class="product-info">
+                            <div class="product-name">Weekend Special</div>
+                            <div class="product-price">100 Spins</div>
+                            <div class="product-description">Extra spins for weekend players</div>
+                        </div>
+                        <button class="buy-btn">Claim</button>
+                    </div>
+                    <div class="product-item" onclick="selectProduct('Mega Spin Pack', '200 Spins', 'freespins')">
+                        <span class="product-emoji">💫</span>
+                        <div class="product-info">
+                            <div class="product-name">Mega Spin Pack</div>
+                            <div class="product-price">200 Spins</div>
+                            <div class="product-description">Ultimate free spins package</div>
+                        </div>
+                        <button class="buy-btn">Claim</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Slots Modal -->
+    <div id="slots-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🎲 Top Slots</h2>
+                <button class="close-btn" onclick="closeModal('slots')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="product-list">
+                    <div class="product-item" onclick="selectProduct('Mega Fortune', '97.4% RTP', 'slots')">
+                        <span class="product-emoji">💰</span>
+                        <div class="product-info">
+                            <div class="product-name">Mega Fortune</div>
+                            <div class="product-price">97.4% RTP</div>
+                            <div class="product-description">Progressive jackpot slot with huge payouts</div>
+                        </div>
+                        <button class="buy-btn">Play</button>
+                    </div>
+                    <div class="product-item" onclick="selectProduct('Starburst', '96.1% RTP', 'slots')">
+                        <span class="product-emoji">⭐</span>
+                        <div class="product-info">
+                            <div class="product-name">Starburst</div>
+                            <div class="product-price">96.1% RTP</div>
+                            <div class="product-description">Classic slot with expanding wilds</div>
+                        </div>
+                        <button class="buy-btn">Play</button>
+                    </div>
+                    <div class="product-item" onclick="selectProduct('Book of Dead', '96.2% RTP', 'slots')">
+                        <span class="product-emoji">📚</span>
+                        <div class="product-info">
+                            <div class="product-name">Book of Dead</div>
+                            <div class="product-price">96.2% RTP</div>
+                            <div class="product-description">Adventure-themed slot with free spins</div>
+                        </div>
+                        <button class="buy-btn">Play</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Telegram Web App
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Set theme colors
+        document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#ffffff');
+        document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#000000');
+        document.documentElement.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color || '#999999');
+        document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color || '#3390ec');
+        document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color || '#ffffff');
+        document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color || '#f8f9fa');
+
+        function openModal(category) {
+            const modal = document.getElementById(category + '-modal');
+            modal.classList.add('active');
+            
+            // Send data to Telegram
+            tg.sendData(JSON.stringify({
+                action: 'category_opened',
+                category: category,
+                timestamp: new Date().toISOString()
+            }));
+        }
+
+        function closeModal(category) {
+            const modal = document.getElementById(category + '-modal');
+            modal.classList.remove('active');
+        }
+
+        function selectProduct(name, price, category) {
+            // Send product selection to Telegram
+            tg.sendData(JSON.stringify({
+                action: 'product_selected',
+                product: {
+                    name: name,
+                    price: price,
+                    category: category
+                },
+                user: tg.initDataUnsafe.user,
+                timestamp: new Date().toISOString()
+            }));
+
+            // Show confirmation
+            tg.showAlert(`Selected: ${name} - ${price}`);
+        }
+
+        // Close modal when clicking outside
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+
+        // Handle back button
+        tg.onEvent('backButtonClicked', function() {
+            const activeModal = document.querySelector('.modal.active');
+            if (activeModal) {
+                activeModal.classList.remove('active');
+            } else {
+                tg.close();
+            }
+        });
+
+        // Show back button when modal is open
+        document.querySelectorAll('.modal').forEach(modal => {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.attributeName === 'class') {
+                        if (modal.classList.contains('active')) {
+                            tg.BackButton.show();
+                        } else {
+                            tg.BackButton.hide();
+                        }
+                    }
+                });
+            });
+            observer.observe(modal, { attributes: true });
+        });
+
+        // Ready event
+        tg.ready();
+    </script>
+</body>
+</html>
